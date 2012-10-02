@@ -30,8 +30,23 @@ framework_res_source_path := APPS/framework-res_intermediates/src
 # ============================================================
 include $(CLEAR_VARS)
 
+# Java files from the following directories will be included into the
+# framework_ext java library. This is done to workaround the limit on the
+# number of classes/dex in a java library.
+FRAMEWORKS_EXT_SUBDIRS := \
+       media/mca/effect \
+       media/mca/filterfw \
+       media/mca/filterpacks \
+       core/java/android/test \
+       core/java/android/gesture \
+       core/java/android/speech/srec \
+       media/java/android/media/videoeditor \
+       media/java/android/media/audiofx
+
+FRAMEWORKS_EXT_SRCS := $(call find-other-java-files,$(FRAMEWORKS_EXT_SUBDIRS))
+
 # FRAMEWORKS_BASE_SUBDIRS comes from build/core/pathmap.mk
-LOCAL_SRC_FILES := $(call find-other-java-files,$(FRAMEWORKS_BASE_SUBDIRS))
+LOCAL_SRC_FILES := $(filter-out $(FRAMEWORKS_EXT_SRCS),$(call find-other-java-files,$(FRAMEWORKS_BASE_SUBDIRS)))
 
 # EventLogTags files.
 LOCAL_SRC_FILES += \
@@ -252,6 +267,7 @@ $(full_classes_compiled_jar): $(framework_res_R_stamp)
 $(LOCAL_INSTALLED_MODULE): | $(dir $(LOCAL_INSTALLED_MODULE))framework-res.apk
 
 framework_built := $(call java-lib-deps,framework)
+framework_built += $(call java-lib-deps,framework2)
 
 # AIDL files to be preprocessed and included in the SDK,
 # relative to the root of the build tree.
@@ -390,6 +406,7 @@ framework_docs_LOCAL_JAVA_LIBRARIES := \
 			core \
 			ext \
 			framework \
+			framework2 \
 
 framework_docs_LOCAL_MODULE_CLASS := JAVA_LIBRARIES
 framework_docs_LOCAL_DROIDDOC_HTML_DIR := docs/html
@@ -664,7 +681,7 @@ include $(CLEAR_VARS)
 
 LOCAL_SRC_FILES:=$(framework_docs_LOCAL_SRC_FILES)
 LOCAL_INTERMEDIATE_SOURCES:=$(framework_docs_LOCAL_INTERMEDIATE_SOURCES)
-LOCAL_JAVA_LIBRARIES:=$(framework_docs_LOCAL_JAVA_LIBRARIES) framework
+LOCAL_JAVA_LIBRARIES:=$(framework_docs_LOCAL_JAVA_LIBRARIES) framework framework2
 LOCAL_MODULE_CLASS:=$(framework_docs_LOCAL_MODULE_CLASS)
 LOCAL_DROIDDOC_SOURCE_PATH:=$(framework_docs_LOCAL_DROIDDOC_SOURCE_PATH)
 LOCAL_DROIDDOC_HTML_DIR:=$(framework_docs_LOCAL_DROIDDOC_HTML_DIR)
@@ -709,6 +726,26 @@ LOCAL_JAVA_LIBRARIES := core
 LOCAL_JAVA_RESOURCE_DIRS := $(ext_res_dirs)
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := ext
+
+LOCAL_NO_EMMA_INSTRUMENT := true
+LOCAL_NO_EMMA_COMPILE := true
+
+LOCAL_DX_FLAGS := --core-library
+
+include $(BUILD_JAVA_LIBRARY)
+
+# ============================================================
+# Build framework2.jar - split from framework.jar
+# ============================================================
+include $(CLEAR_VARS)
+
+LOCAL_SRC_FILES := $(FRAMEWORKS_EXT_SRCS)
+
+LOCAL_NO_STANDARD_LIBRARIES := true
+LOCAL_JAVA_LIBRARIES := bouncycastle core core-junit ext framework
+
+LOCAL_MODULE := framework2
+LOCAL_MODULE_CLASS := JAVA_LIBRARIES
 
 LOCAL_NO_EMMA_INSTRUMENT := true
 LOCAL_NO_EMMA_COMPILE := true
